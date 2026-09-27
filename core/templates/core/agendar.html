@@ -1,0 +1,154 @@
+{% extends 'core/base.html' %} 
+
+{% block content %}
+
+<div class="row justify-content-center mt-4 mb-5">
+<div class="col-lg-8">
+    <div class="card space-card p-4 shadow-lg">
+    <div class="text-center mb-4">
+        <h2 class="text-info fw-bold">🔭 Agendar Observación</h2>
+        <p class="text-muted">
+        Selecciona tu objetivo y la fecha. Nuestro sistema validará el aforo y
+        las condiciones meteorológicas.
+        </p>
+    </div>
+
+    <form method="POST" action="">
+        {% csrf_token %}
+
+        <div class="row">
+        <div class="col-md-12 mb-4">
+            <label class="form-label theme-label fw-bold">1. ¿Qué deseas observar?</label>
+            <select name="objetivo" class="form-control theme-input" required>
+            <option value="" disabled selected>
+                Selecciona un astro de la lista...
+            </option>
+            <option value="luna">La Luna (Fases y Cráteres)</option>
+            <option value="jupiter">Júpiter y lunas galileanas</option>
+            <option value="saturno">Saturno y sus anillos</option>
+            <option value="marte">Marte</option>
+            <option value="espacio_profundo">
+                Espacio Profundo (Nebulosas y Galaxias)
+            </option>
+            <option value="todo">Un poco de todo (Jornada larga)</option>
+            </select>
+        </div>
+
+        <div class="col-md-12 mb-4">
+            <label class="form-label theme-label fw-bold">2. Fecha de la Observación</label>
+            <input
+            type="date"
+            name="fecha"
+            class="form-control theme-input"
+            required
+            id="fecha_input"
+            />
+
+            <div
+            class="mt-2 p-2 rounded"
+            style="
+                background-color: rgba(77, 168, 218, 0.1);
+                border: 1px dashed #4da8da;
+            "
+            >
+            <small id="clima_status" class="text-info d-block text-center">
+                ☁️ Esperando selección de fecha para consultar el radar meteorológico...
+            </small>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-4">
+            <label class="form-label theme-label fw-bold">3. Hora de Inicio</label>
+            <input
+            type="time"
+            name="hora_inicio"
+            id="hora_inicio_input"
+            class="form-control theme-input"
+            required
+            />
+        </div>
+        <div class="col-md-6 mb-4">
+            <label class="form-label theme-label fw-bold">4. Hora de Finalización</label>
+            <input type="time" name="hora_fin" class="form-control theme-input" required />
+        </div>
+
+        <div class="col-md-12 mb-4">
+            <label class="theme-label theme-label fw-bold">5. Comentarios de la Investigación (Opcional)</label>
+            <textarea
+            name="comentarios"
+            class="form-control theme-input"
+            rows="3"
+            placeholder="Ej. Necesito usar el filtro lunar, es para un proyecto de la clase de Física..."
+            ></textarea>
+        </div>
+        </div>
+
+        <div class="d-grid gap-2 mt-2">
+        <button type="submit" id="btn_enviar_reserva" class="btn btn-neon btn-lg" disabled>
+            🔒 Validando clima para agendar...
+        </button>
+        </div>
+    </form>
+    </div>
+</div>
+</div>
+
+<script>
+let temporizadorClima;
+const btnReserva = document.getElementById("btn_enviar_reserva");
+
+function consultarClima() {
+    let fecha = document.getElementById("fecha_input").value;
+    let hora = document.getElementById("hora_inicio_input").value;
+    let statusDiv = document.getElementById("clima_status");
+
+    if (!fecha) return;
+
+    clearTimeout(temporizadorClima);
+
+    // Medida de seguridad: Bloqueamos el botón inmediatamente al detectar un cambio
+    btnReserva.disabled = true;
+    btnReserva.innerHTML = "🔒 Validando clima para agendar...";
+
+    statusDiv.innerHTML = "⏳ Esperando confirmación de hora...";
+    statusDiv.className = "text-secondary d-block text-center fw-bold";
+
+    temporizadorClima = setTimeout(() => {
+    statusDiv.innerHTML = "🛰️ Analizando nubes y precipitación...";
+    statusDiv.className = "text-warning d-block text-center fw-bold";
+
+    let url = `/api/consultar-clima/?fecha=${fecha}`;
+    if (hora) url += `&hora=${hora}`;
+
+    fetch(url)
+        .then((response) => response.json())
+        .then((data) => {
+        statusDiv.innerHTML = data.mensaje;
+
+        if (data.estado === "aprobado") {
+            statusDiv.className = "text-success d-block text-center fw-bold";
+            btnReserva.disabled = false;
+            btnReserva.innerHTML = "✅ Solicitar Reserva al Observatorio";
+        } else if (data.estado === "rechazado") {
+            statusDiv.className = "text-danger d-block text-center fw-bold";
+            btnReserva.disabled = true;
+            btnReserva.innerHTML = "❌ Clima no favorable";
+        } else {
+            statusDiv.className = "text-info d-block text-center fw-bold";
+            btnReserva.disabled = true;
+        }
+        })
+        .catch((error) => {
+        statusDiv.innerHTML = "❌ Fallo en la comunicación.";
+        statusDiv.className = "text-danger d-block text-center";
+        btnReserva.disabled = true;
+        });
+    }, 800); 
+}
+
+document.getElementById("fecha_input").addEventListener("change", consultarClima);
+document.getElementById("hora_inicio_input").addEventListener("change", consultarClima);
+document.getElementById("hora_inicio_input").addEventListener("input", consultarClima);
+</script>
+
+{% endblock %}

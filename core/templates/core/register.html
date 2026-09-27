@@ -1,0 +1,35 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card space-card p-4 mt-4">
+            <h3 class="text-center mb-4">Registro de Investigador</h3>
+            <form method="POST" action="{% url 'register' %}">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label">Nombre Completo</label>
+                    <input type="text" name="nombre" class="form-control" placeholder="Ej. Nilson Saballos" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Correo Electrónico</label>
+                    <input type="email" name="email" class="form-control" placeholder="correo@uam.edu.ni" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Rol</label>
+                    <select name="rol" class="form-control">
+                        <option value="estudiante">Estudiante</option>
+                        <option value="docente">Docente</option>
+                        <option value="externo">Investigador Externo</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label">Contraseña</label>
+                    <input type="password" name="password" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-neon w-100">Solicitar Acceso</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

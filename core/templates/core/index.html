@@ -1,0 +1,115 @@
+{% extends 'core/base.html' %}
+<!-- Crucial: Cargar static DESPUÉS del extends -->
+{% load static %} {% block content %}
+<!-- Sección de Bienvenida (La que ya tenías) -->
+<div class="row justify-content-center text-center mt-5 mb-5">
+<div class="col-md-8">
+    <h1 class="display-4 fw-bold text-white mb-4">
+    Explora el Cosmos desde la UAM
+    </h1>
+    <p class="texto-flotante lead">
+    Sistema centralizado para la gestión y planificación de observaciones
+    astronómicas con equipos de alta precisión del Observatorio Copérnico.
+    </p>
+    <a href="{% url 'agendar' %}" class="btn btn-neon btn-lg px-5 py-3"
+    >Agendar Día de Observación</a
+    >
+</div>
+</div>
+
+<!-- NUEVA SECCIÓN: Carrusel Astronómico -->
+<div class="row justify-content-center mb-5">
+<div class="col-lg-10">
+    <h3 class="text-center text-info mb-4 fw-bold">
+    🔭 Nuestras Últimas Capturas
+    </h3>
+
+    <div
+    id="spaceCarousel"
+    class="carousel slide space-carousel"
+    data-bs-ride="carousel"
+    >
+    <!-- Indicadores (Rayitas de abajo) -->
+    <div class="carousel-indicators">
+        <button
+        type="button"
+        data-bs-target="#spaceCarousel"
+        data-bs-slide-to="0"
+        class="active"
+        ></button>
+        <button
+        type="button"
+        data-bs-target="#spaceCarousel"
+        data-bs-slide-to="1"
+        ></button>
+        <button
+        type="button"
+        data-bs-target="#spaceCarousel"
+        data-bs-slide-to="2"
+        ></button>
+    </div>
+
+    <!-- Slides del Carrusel -->
+    <div class="carousel-inner">
+        <!-- Slide 1 (Activo) -->
+        <div class="carousel-item active">
+        <!-- Usamos {% static '...' %} para llamar la foto -->
+        <img
+            src="{% static 'core/images/astro1.jpg' %}"
+            class="d-block w-100"
+            alt="Nebulosa"
+        />
+        <div class="carousel-caption d-none d-md-block">
+            <h5 class="text-info">Nebulosa de Orión</h5>
+            <p>Capturada con el telescopio Celestron CGX-L.</p>
+        </div>
+        </div>
+
+        <!-- Slide 2 -->
+        <div class="carousel-item">
+        <img
+            src="{% static 'core/images/astro2.jpg' %}"
+            class="d-block w-100"
+            alt="Cráteres de la Luna"
+        />
+        <div class="carousel-caption d-none d-md-block">
+            <h5 class="text-info">Superficie Lunar</h5>
+            <p>Detalle de cráteres durante la fase de cuarto creciente.</p>
+        </div>
+        </div>
+
+        <!-- Slide 3 -->
+        <div class="carousel-item">
+        <img
+            src="{% static 'core/images/astro3.webp' %}"
+            class="d-block w-100"
+            alt="Vía Láctea"
+        />
+        <div class="carousel-caption d-none d-md-block">
+            <h5 class="text-info">Centro Galáctico</h5>
+            <p>Observación de campo amplio desde el edificio Copérnico.</p>
+        </div>
+        </div>
+    </div>
+
+    <!-- Controles (Flechas) -->
+    <button
+        class="carousel-control-prev"
+        type="button"
+        data-bs-target="#spaceCarousel"
+        data-bs-slide="prev"
+    >
+        <span class="carousel-control-prev-icon"></span>
+    </button>
+    <button
+        class="carousel-control-next"
+        type="button"
+        data-bs-target="#spaceCarousel"
+        data-bs-slide="next"
+    >
+        <span class="carousel-control-next-icon"></span>
+    </button>
+    </div>
+</div>
+</div>
+{% endblock %}

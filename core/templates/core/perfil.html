@@ -1,0 +1,76 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<div class="row justify-content-center mt-5 mb-5">
+    <div class="col-md-6">
+        <div class="card space-card p-4 shadow-lg">
+            <div class="text-center mb-4">
+                <h2 class="text-info fw-bold">Panel de Investigador</h2>
+                <p class="theme-label" style="font-weight: normal;">Gestión de cuenta y credenciales</p>
+            </div>
+            
+            <div class="card-body">
+                <div class="mb-3 border-bottom border-secondary pb-2">
+                    <small class="theme-label d-block" style="opacity: 0.7;">Nombre Completo</small>
+                    <span class="fs-5 fw-bold">{{ user.first_name|default:"No especificado" }}</span>
+                </div>
+                
+                <div class="mb-3 border-bottom border-secondary pb-2">
+                    <small class="theme-label d-block" style="opacity: 0.7;">Correo Institucional</small>
+                    <span class="fs-5 fw-bold">{{ user.email }}</span>
+                </div>
+                
+                <div class="mb-4 border-bottom border-secondary pb-2">
+                    <small class="theme-label d-block" style="opacity: 0.7;">Usuario del Sistema</small>
+                    <span class="fs-5 fw-bold">@{{ user.username }}</span>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <a href="{% url 'agendar' %}" class="btn btn-neon">Mis Reservas Astronómicas</a>
+                    <a href="{% url 'logout' %}" class="btn btn-outline-danger mt-2">Cerrar Sesión Segura</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="space-card p-4 mt-4">
+    <h3 class="theme-label mb-4">Mis Reservas Astronómicas</h3>
+    
+    <div class="table-responsive">
+        <table class="table text-white">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Objetivo</th>
+                    <th>Estado</th>
+                    <th>Mensaje Admin</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in reservas %}
+                <tr>
+                    <td>{{ r.fecha }}</td>
+                    <td>{{ r.get_objetivo_display }}</td>
+                    <td>
+                        <span class="badge 
+                            {% if r.estado == 'aprobada' %}bg-success
+                            {% elif r.estado == 'reprogramar' %}bg-warning text-dark
+                            {% elif r.estado == 'rechazada' %}bg-danger
+                            {% else %}bg-info{% endif %}">
+                            {{ r.get_estado_display }}
+                        </span>
+                    </td>
+                    <td>{{ r.mensaje_admin|default:"-" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center">Aún no tienes reservas solicitadas.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

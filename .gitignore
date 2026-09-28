@@ -224,3 +224,6 @@ __marimo__/
 # Operating system
 .DS_Store
 Thumbs.db
+# Local backup and additional virtual environment
+.venv-1/
+db.sqlite3.backup

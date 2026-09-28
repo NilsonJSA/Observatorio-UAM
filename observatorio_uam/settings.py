@@ -11,22 +11,31 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+import environ
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+env = environ.Env(
+    DEBUG=(bool, True)
+)
+
+environ.Env.read_env(BASE_DIR / '.env')
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-c*vl!(6t#^&q--mqkqnvh^t19f&98t94yvyv)rzt1bzp^8s1n-'
+SECRET_KEY = env('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env.bool('DEBUG', default=True)
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = env.list(
+    'ALLOWED_HOSTS',
+    default=['127.0.0.1', 'localhost']
+)
 
 # Application definition
 
@@ -121,4 +130,4 @@ STATIC_URL = 'static/'
 
 
 #Llave de API Windy
-WINDY_API_KEY = 'UOIIxWreC93dXnTjBHh9JR5kCr8sOez1'
+WINDY_API_KEY = env('WINDY_API_KEY', default='')

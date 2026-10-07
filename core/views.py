@@ -10,6 +10,9 @@ from django.conf import settings
 from datetime import datetime, timezone, timedelta
 from .models import ReservaObservacion
 
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+
 # Tu vista home queda igual
 def home(request):
     return render(request, 'core/index.html')
@@ -220,4 +223,11 @@ def consultar_clima_api(request):
         print("❌===============================================❌")
         
         return JsonResponse({'mensaje': '❌ Error de conexión con el satélite.'})
-    
+
+
+    @api_view(['GET'])
+    def health_check(request):
+        return Response({
+            "status": "ok",
+            "system": "AstroUAM"
+        })

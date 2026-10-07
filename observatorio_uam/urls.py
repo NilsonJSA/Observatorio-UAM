@@ -20,4 +20,6 @@ from django.urls import path, include
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('core.urls')), #Delegamos las rutas a nuestra app 'core'
+    path('api/', include('core.api_urls')),  # Incluye las URLs de la API
 ]
+

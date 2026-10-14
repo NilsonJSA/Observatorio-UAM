@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'core',
     'reservas',
     'rest_framework',
+    'rest_framework.authtoken',
 ]
 
 MIDDLEWARE = [
@@ -132,3 +133,10 @@ STATIC_URL = 'static/'
 
 #Llave de API Windy
 WINDY_API_KEY = env('WINDY_API_KEY', default='')
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+}

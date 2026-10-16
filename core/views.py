@@ -13,6 +13,8 @@ from .models import ReservaObservacion
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
+from .serializers import ReservaCreacionSerializer
+
 # Tu vista home queda igual
 def home(request):
     return render(request, 'core/index.html')
@@ -64,43 +66,34 @@ def register_view(request):
 # Tu vista agendar 2.0
 @login_required(login_url='login')
 def agendar_view(request):
+
     if request.method == 'POST':
-        # 1. Atrapamos los datos que vienen del formulario HTML
-        objetivo = request.POST.get('objetivo')
-        fecha = request.POST.get('fecha')
-        hora_inicio = request.POST.get('hora_inicio')
-        hora_fin = request.POST.get('hora_fin')
-        comentarios = request.POST.get('comentarios', '') # Si está vacío, no pasa nada
 
-        # 2. Verificamos que los campos importantes no vengan vacíos
-        if objetivo and fecha and hora_inicio and hora_fin:
-            try:
-                # 3. ¡Mágia! Guardamos la reserva en la base de datos
-                ReservaObservacion.objects.create(
-                    usuario=request.user, # Asignamos la reserva al estudiante que inició sesión
-                    objetivo=objetivo,
-                    fecha=fecha,
-                    hora_inicio=hora_inicio,
-                    hora_fin=hora_fin,
-                    comentarios=comentarios
+        serializer = ReservaCreacionSerializer(
+            data=request.POST
+        )
+
+        if serializer.is_valid():
+
+            serializer.save(
+                usuario=request.user
+            )
+
+            messages.success(
+                request,
+                "Tu reserva ha sido registrada correctamente. "
+                "Está pendiente de revisión administrativa."
+            )
+
+            return redirect('perfil')
+
+        for campo, errores in serializer.errors.items():
+            for error in errores:
+                messages.error(
+                    request,
+                    f"{campo}: {error}"
                 )
-                
-                # 4. Avisamos que todo salió perfecto
-                messages.success(request, '✅ ¡Tu reserva ha sido guardada con éxito! Está en el Paso 1: Revisión de Administración.')
-                
-                # 5. Lo mandamos a su panel de perfil para que vea su nueva reserva
-                return redirect('perfil') 
-                
-            except Exception as e:
-                messages.error(request, f'❌ Hubo un error al guardar tu reserva: {e}')
-        else:
-            messages.warning(request, '⚠️ Por favor, completa todos los campos requeridos.')
-
-    # Si es un GET (solo entra a ver la página), le mostramos el formulario normal
     return render(request, 'core/agendar.html')
-
-
-
 
 # Vista para Cerrar Sesión
 def logout_view(request):
@@ -223,11 +216,3 @@ def consultar_clima_api(request):
         print("❌===============================================❌")
         
         return JsonResponse({'mensaje': '❌ Error de conexión con el satélite.'})
-
-
-    @api_view(['GET'])
-    def health_check(request):
-        return Response({
-            "status": "ok",
-            "system": "AstroUAM"
-        })

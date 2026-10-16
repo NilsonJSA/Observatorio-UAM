@@ -16,4 +16,22 @@ urlpatterns = [
         api_views.consultar_disponibilidad,
         name="api-disponibilidad"
     ),
+
+    path(
+        "reservas/<int:reserva_id>/",
+        api_views.detalle_reserva,
+        name="api-detalle-reserva"
+    ),
+
+    path(
+        "registro/",
+        api_views.api_registro,
+        name="api-registro"
+    ),
+
+    path(
+        "logout/",
+        api_views.api_logout,
+        name="api-logout"
+    ),
 ]

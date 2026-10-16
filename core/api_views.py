@@ -9,11 +9,17 @@ from .serializers import (
     ReservaObservacionSerializer,
     ReservaCreacionSerializer,
     ConsultaDisponibilidadSerializer,
+    RegistroUsuarioSerializer,
 )
 
 from django.contrib.auth import authenticate
 
 from django.db.models import F
+
+from django.shortcuts import get_object_or_404
+
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.decorators import authentication_classes
 
 @api_view(["GET"])
 def health_check(request):
@@ -142,3 +148,45 @@ def consultar_disponibilidad(request):
             "y asignacion de recursos."
         ),
     })
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def detalle_reserva(request, reserva_id):
+
+    reserva = get_object_or_404(
+        ReservaObservacion,
+        pk=reserva_id,
+        usuario=request.user
+    )
+
+    serializer = ReservaObservacionSerializer(reserva)
+
+    return Response(serializer.data)
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def api_registro(request):
+    serializer = RegistroUsuarioSerializer(
+        data=request.data
+    )
+
+    serializer.is_valid(raise_exception=True)
+
+    usuario = serializer.save()
+
+    return Response({
+        "id": usuario.id,
+        "email": usuario.email,
+        "nombre": usuario.first_name,
+    }, status=status.HTTP_201_CREATED)
+
+@api_view(["POST"])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def api_logout(request):
+
+    request.auth.delete()
+
+    return Response(
+        status=status.HTTP_204_NO_CONTENT
+    )

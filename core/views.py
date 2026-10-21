@@ -15,6 +15,8 @@ from rest_framework.response import Response
 
 from .serializers import ReservaCreacionSerializer
 
+from django.utils import timezone as django_timezone
+
 # Tu vista home queda igual
 def home(request):
     return render(request, 'core/index.html')
@@ -93,7 +95,17 @@ def agendar_view(request):
                     request,
                     f"{campo}: {error}"
                 )
-    return render(request, 'core/agendar.html')
+
+    return render(
+        request,
+        "core/agendar.html",
+        {
+            "fecha_minima": django_timezone.localdate().isoformat(),
+            "datos_formulario": (
+                request.POST if request.method == "POST" else {}
+            ),
+        },
+    )
 
 # Vista para Cerrar Sesión
 def logout_view(request):

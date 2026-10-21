@@ -1,4 +1,4 @@
-{% extends 'core/base.html' %} 
+{% extends 'core/base.html' %}
 
 {% block content %}
 
@@ -42,7 +42,25 @@
             class="form-control theme-input"
             required
             id="fecha_input"
+            class="form-control theme-input"
+            min="{{ fecha_minima }}"
+            aria-describedby="fecha_ayuda"
+            required
             />
+
+            <small
+                id="fecha_ayuda"
+                class="theme-label d-block mt-1"
+                role="alert"
+            >
+                Selecciona hoy o una fecha futura. Los horarios se validarán al enviar.
+            </small>
+
+            <small
+                id="fecha_error"
+                class="text-danger d-none mt-1"
+                role="alert">
+            </small>
 
             <div
             class="mt-2 p-2 rounded"
@@ -60,16 +78,31 @@
         <div class="col-md-6 mb-4">
             <label class="form-label theme-label fw-bold">3. Hora de Inicio</label>
             <input
-            type="time"
-            name="hora_inicio"
-            id="hora_inicio_input"
-            class="form-control theme-input"
-            required
+                type="time"
+                name="hora_inicio"
+                id="hora_inicio_input"
+                class="form-control theme-input"
+                value="{{ datos_formulario.hora_inicio|default:'' }}"
+                required
             />
+
+            <small
+                id="hora_inicio_error"
+                class="text-danger d-block mt-1"
+                role="alert"
+            >
+            </small>
         </div>
         <div class="col-md-6 mb-4">
             <label class="form-label theme-label fw-bold">4. Hora de Finalización</label>
             <input type="time" name="hora_fin" class="form-control theme-input" required />
+
+            <small
+                id="hora_fin_error"
+                class="text-danger d-none mt-1"
+                role="alert"
+            >
+            </small>
         </div>
 
         <div class="col-md-12 mb-4">
@@ -97,10 +130,81 @@
 let temporizadorClima;
 const btnReserva = document.getElementById("btn_enviar_reserva");
 
+function validarFechaYHorario() {
+    const fecha = document.getElementById("fecha_input");
+    const inicio = document.getElementById("hora_inicio_input");
+    const fin = document.querySelector('[name="hora_fin"]');
+
+    const errorFecha = document.getElementById("fecha_error");
+    const errorInicio = document.getElementById("hora_inicio_error");
+    const errorFin = document.getElementById("hora_fin_error");
+
+    errorFecha.classList.add("d-none");
+    errorInicio.classList.add("d-none");
+    errorFin.classList.add("d-none");
+
+    let valido = true;
+
+    // Fecha anterior al mínimo permitido
+    if (fecha.value && fecha.value < fecha.min) {
+        errorFecha.textContent =
+            "No puedes seleccionar una fecha pasada.";
+
+        errorFecha.classList.remove("d-none");
+        valido = false;
+    }
+
+    // Hora que ya transcurrió durante el día actual
+    if (fecha.value === fecha.min && inicio.value) {
+        const ahora = new Date();
+
+        const horaActual =
+            String(ahora.getHours()).padStart(2, "0") +
+            ":" +
+            String(ahora.getMinutes()).padStart(2, "0");
+
+        if (inicio.value <= horaActual) {
+            errorInicio.textContent =
+                "La hora de inicio debe ser futura.";
+
+            errorInicio.classList.remove("d-none");
+            valido = false;
+        }
+    }
+
+    // Hora final anterior o igual a la inicial
+    if (inicio.value && fin.value && fin.value <= inicio.value) {
+        errorFin.textContent =
+            "La hora final debe ser posterior a la inicial.";
+
+        errorFin.classList.remove("d-none");
+        valido = false;
+    }
+
+    return valido;
+}
+
 function consultarClima() {
     let fecha = document.getElementById("fecha_input").value;
     let hora = document.getElementById("hora_inicio_input").value;
     let statusDiv = document.getElementById("clima_status");
+
+    clearTimeout(temporizadorClima);
+
+    if (!validarFechaYHorario()) {
+        btnReserva.disabled = true;
+
+        btnReserva.textContent =
+            "Corrige la fecha o el horario";
+
+        statusDiv.textContent =
+            "Corrige los datos antes de consultar el clima.";
+
+        statusDiv.className =
+            "text-danger d-block text-center fw-bold";
+
+        return;
+    }
 
     if (!fecha) return;
 
@@ -125,7 +229,7 @@ function consultarClima() {
         .then((data) => {
         statusDiv.innerHTML = data.mensaje;
 
-        if (data.estado === "aprobado") {
+        if (data.estado === "aprobado" && validarFechaYHorario()) {
             statusDiv.className = "text-success d-block text-center fw-bold";
             btnReserva.disabled = false;
             btnReserva.innerHTML = "✅ Solicitar Reserva al Observatorio";
@@ -143,12 +247,21 @@ function consultarClima() {
         statusDiv.className = "text-danger d-block text-center";
         btnReserva.disabled = true;
         });
-    }, 800); 
+    }, 800);
 }
 
 document.getElementById("fecha_input").addEventListener("change", consultarClima);
 document.getElementById("hora_inicio_input").addEventListener("change", consultarClima);
 document.getElementById("hora_inicio_input").addEventListener("input", consultarClima);
+
+document.getElementById("fecha_input").addEventListener("input", consultarClima);
+
+document.querySelector('[name="hora_fin"]').addEventListener("input", consultarClima);
+
+document.querySelector('[name="hora_fin"]').addEventListener("change", consultarClima);
+
+consultarClima();
+
 </script>
 
 {% endblock %}

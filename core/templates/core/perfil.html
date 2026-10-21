@@ -1,76 +1,205 @@
-{% extends 'core/base.html' %}
+{% extends 'core/base.html' %} {% block content %}
 
-{% block content %}
-
+<!-- PANEL DE INVESTIGADOR -->
 <div class="row justify-content-center mt-5 mb-5">
     <div class="col-md-6">
         <div class="card space-card p-4 shadow-lg">
             <div class="text-center mb-4">
                 <h2 class="text-info fw-bold">Panel de Investigador</h2>
-                <p class="theme-label" style="font-weight: normal;">Gestión de cuenta y credenciales</p>
+                <p class="theme-label" style="font-weight: normal">
+                    Gestión de cuenta y credenciales
+                </p>
             </div>
-            
+
             <div class="card-body">
                 <div class="mb-3 border-bottom border-secondary pb-2">
-                    <small class="theme-label d-block" style="opacity: 0.7;">Nombre Completo</small>
-                    <span class="fs-5 fw-bold">{{ user.first_name|default:"No especificado" }}</span>
-                </div>
-                
-                <div class="mb-3 border-bottom border-secondary pb-2">
-                    <small class="theme-label d-block" style="opacity: 0.7;">Correo Institucional</small>
-                    <span class="fs-5 fw-bold">{{ user.email }}</span>
-                </div>
-                
-                <div class="mb-4 border-bottom border-secondary pb-2">
-                    <small class="theme-label d-block" style="opacity: 0.7;">Usuario del Sistema</small>
-                    <span class="fs-5 fw-bold">@{{ user.username }}</span>
+                    <small class="theme-label d-block"> Nombre Completo </small>
+                    <span class="fs-5 fw-bold">
+                        {{ user.first_name|default:"No especificado" }}
+                    </span>
                 </div>
 
+                <div class="mb-3 border-bottom border-secondary pb-2">
+                    <small class="theme-label d-block"> Correo Institucional </small>
+                    <span class="fs-5 fw-bold"> {{ user.email }} </span>
+                </div>
+
+                <div class="mb-4 border-bottom border-secondary pb-2">
+                    <small class="theme-label d-block"> Usuario del Sistema </small>
+                    <span class="fs-5 fw-bold"> @{{ user.username }} </span>
+                </div>
                 <div class="d-grid gap-2">
-                    <a href="{% url 'agendar' %}" class="btn btn-neon">Mis Reservas Astronómicas</a>
-                    <a href="{% url 'logout' %}" class="btn btn-outline-danger mt-2">Cerrar Sesión Segura</a>
+                    <a href="{% url 'agendar' %}" class="btn btn-neon">
+                        Agendar nueva observación
+                    </a>
+                    <a href="{% url 'logout' %}" class="btn btn-outline-danger mt-2">
+                        Cerrar Sesión Segura
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="space-card p-4 mt-4">
+<!-- TABLA DE RESERVAS -->
+<div class="space-card p-4 mt-4 mb-5">
     <h3 class="theme-label mb-4">Mis Reservas Astronómicas</h3>
-    
+
     <div class="table-responsive">
-        <table class="table text-white">
+        <table class="table table-hover align-middle text-white">
             <thead>
                 <tr>
                     <th>Fecha</th>
                     <th>Objetivo</th>
+                    <th>Horario</th>
                     <th>Estado</th>
-                    <th>Mensaje Admin</th>
+                    <th>Detalles</th>
                 </tr>
             </thead>
+
             <tbody>
                 {% for r in reservas %}
+
                 <tr>
-                    <td>{{ r.fecha }}</td>
+                    <td class="text-nowrap">{{ r.fecha|date:"d/m/Y" }}</td>
+
                     <td>{{ r.get_objetivo_display }}</td>
-                    <td>
-                        <span class="badge 
-                            {% if r.estado == 'aprobada' %}bg-success
-                            {% elif r.estado == 'reprogramar' %}bg-warning text-dark
-                            {% elif r.estado == 'rechazada' %}bg-danger
-                            {% else %}bg-info{% endif %}">
-                            {{ r.get_estado_display }}
-                        </span>
+                    <td class="text-nowrap">
+                        {{ r.hora_inicio|time:"H:i" }} - {{ r.hora_fin|time:"H:i" }}
                     </td>
-                    <td>{{ r.mensaje_admin|default:"-" }}</td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="4" class="text-center">Aún no tienes reservas solicitadas.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+
+                    <td>
+                        <span
+                        class="badge {% if r.estado == 'aprobada' %} bg-success {% elif r.estado == 'reprogramar' %} bg-warning text-dark {% elif r.estado == 'rechazada' %} bg-danger {% else %} bg-info text-dark {% endif %}"
+                        >
+                        {{ r.get_estado_display }}
+                    </span>
+                </td>
+
+                <td>
+                    <button
+                    type="button"
+                    class="btn btn-neon btn-sm text-nowrap"
+                    data-bs-toggle="modal"
+                    data-bs-target="#detalleReserva{{ r.id }}"
+                    >
+                    Ver detalles
+                </button>
+            </td>
+        </tr>
+
+        {% empty %}
+
+        <tr>
+            <td colspan="5" class="text-center py-4">
+                Aún no tienes reservas solicitadas.
+            </td>
+        </tr>
+
+        {% endfor %}
+    </tbody>
+</table>
 </div>
+</div>
+
+<!-- VENTANAS DE DETALLES -->
+{% for r in reservas %}
+
+<div
+class="modal fade"
+id="detalleReserva{{ r.id }}"
+tabindex="-1"
+aria-labelledby="tituloReserva{{ r.id }}"
+aria-hidden="true"
+>
+<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content space-card">
+        <!-- ENCABEZADO -->
+        <div class="modal-header border-secondary">
+            <h5
+            class="modal-title theme-label fw-bold"
+            id="tituloReserva{{ r.id }}"
+            >
+            🔭 Reserva Astronómica #{{ r.id }}
+        </h5>
+
+        <button
+        type="button"
+        class="btn btn-outline-info btn-sm"
+        data-bs-dismiss="modal"
+        aria-label="Cerrar"
+        >
+        Cerrar
+    </button>
+</div>
+
+<!-- CONTENIDO -->
+<div class="modal-body">
+    <div class="mb-3">
+        <strong>Objetivo astronómico</strong>
+        <p class="mb-0">{{ r.get_objetivo_display }}</p>
+    </div>
+
+    <div class="mb-3">
+        <strong>Fecha de observación</strong>
+        <p class="mb-0">{{ r.fecha|date:"d/m/Y" }}</p>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-6">
+            <strong>Hora de inicio</strong>
+            <p class="mb-0">{{ r.hora_inicio|time:"H:i" }}</p>
+        </div>
+
+        <div class="col-6">
+            <strong>Hora de finalización</strong>
+            <p class="mb-0">{{ r.hora_fin|time:"H:i" }}</p>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <strong>Estado de la solicitud</strong>
+        <p class="mt-1">
+            <span
+            class="badge {% if r.estado == 'aprobada' %} bg-success {% elif r.estado == 'reprogramar' %} bg-warning text-dark {% elif r.estado == 'rechazada' %} bg-danger {% else %} bg-info text-dark {% endif %}"
+            >
+            {{ r.get_estado_display }}
+        </span>
+    </p>
+</div>
+
+<hr />
+
+<div class="mb-3">
+    <strong>Comentarios del solicitante</strong>
+    <p class="mb-0">{{ r.comentarios|default:"Sin comentarios." }}</p>
+</div>
+
+<div class="mb-3">
+    <strong>Mensaje de administración</strong>
+    <p class="mb-0">
+        {{ r.mensaje_admin|default:"Sin mensajes administrativos." }}
+    </p>
+</div>
+
+<hr />
+
+<div class="mb-2">
+    <small>
+        Solicitud registrada: {{ r.fecha_solicitud|date:"d/m/Y H:i" }}
+    </small>
+</div>
+</div>
+
+<!-- PIE -->
+<div class="modal-footer border-secondary">
+    <button type="button" class="btn btn-neon" data-bs-dismiss="modal">
+        Entendido
+    </button>
+</div>
+</div>
+</div>
+</div>
+
+{% endfor %}
 {% endblock %}

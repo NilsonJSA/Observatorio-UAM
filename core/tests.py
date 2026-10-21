@@ -318,6 +318,37 @@ class AgendamientoWebTests(TestCase):
             ReservaObservacion.objects.count(), 0
         )
 
+    def test_calendario_incluye_fecha_minima(self):
+        hoy = timezone.localdate().isoformat()
+
+        respuesta = self.client.get(self.url)
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, f'min="{hoy}"')
+
+    def test_web_rechaza_fecha_pasada(self):
+        datos = self.datos.copy()
+
+        datos["fecha"] = (
+            timezone.localdate() - timedelta(days=1)
+        ).isoformat()
+
+        respuesta = self.client.post(
+            self.url,
+            datos
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(
+            ReservaObservacion.objects.count(),
+            0
+        )
+
+        self.assertContains(
+            respuesta,
+            "No se permiten reservas en fechas pasadas."
+        )
+
 class DetalleReservaAPITests(APITestCase):
 
     def setUp(self):

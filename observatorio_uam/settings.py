@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 import environ
+import os
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -140,3 +142,32 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
     ],
 }
+
+# ==========================================
+# CONFIGURACION METEOROLOGICA - ASTROUAM
+# ==========================================
+
+WEATHER_MODES = (
+    "PRUEBAS",
+    "REAL_AVISO",
+    "REAL_BLOQUEO",
+)
+
+WEATHER_MODE = os.environ.get(
+    "WEATHER_MODE",
+    "PRUEBAS"
+).strip().upper()
+
+if WEATHER_MODE not in WEATHER_MODES:
+    raise ImproperlyConfigured(
+        f"WEATHER_MODE no valido: {WEATHER_MODE}. "
+        f"Opciones permitidas: {', '.join(WEATHER_MODES)}"
+    )
+
+# Activar únicamente cuando se verifique que la licencia
+# de Windy Point Forecast permite uso operativo en AstroUAM.
+WINDY_REAL_VERIFIED = False
+
+# Activar únicamente cuando el Observatorio confirme
+# los umbrales meteorológicos que autorizan el bloqueo.
+WEATHER_CRITERIA_APPROVED = False

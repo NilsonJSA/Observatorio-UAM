@@ -3,264 +3,416 @@
 {% block content %}
 
 <div class="row justify-content-center mt-4 mb-5">
-<div class="col-lg-8">
-    <div class="card space-card p-4 shadow-lg">
-    <div class="text-center mb-4">
-        <h2 class="text-info fw-bold">🔭 Agendar Observación</h2>
-        <p class="text-muted">
-        Selecciona tu objetivo y la fecha. Nuestro sistema validará el aforo y
-        las condiciones meteorológicas.
-        </p>
-    </div>
+    <div class="col-lg-8">
+        <div class="card space-card p-4 shadow-lg">
+            <div class="text-center mb-4">
+                <h2 class="text-info fw-bold">🔭 Agendar Observación</h2>
+                <p class="text-muted">
+                    Selecciona el objetivo astronómico, la fecha y el horario.
+                    Tu solicitud quedará pendiente de revisión por el Observatorio.
+                    La información meteorológica es orientativa.
+                </p>
+            </div>
 
-    <form method="POST" action="">
-        {% csrf_token %}
+            <form method="POST" action="">
+                {% csrf_token %}
 
-        <div class="row">
-        <div class="col-md-12 mb-4">
-            <label class="form-label theme-label fw-bold">1. ¿Qué deseas observar?</label>
-            <select name="objetivo" class="form-control theme-input" required>
-            <option value="" disabled selected>
-                Selecciona un astro de la lista...
+                <div class="row">
+                    <div class="col-md-12 mb-4">
+                        <label class="form-label theme-label fw-bold">1. ¿Qué deseas observar?</label>
+                        <select name="objetivo" class="form-control theme-input" required>
+                            <option value="" disabled selected>
+                                Selecciona un astro de la lista...
+                            </option>
+                            <option value="luna"
+                            {% if datos_formulario.objetivo == "luna" %}selected{% endif %}>
+                            La Luna (Fases y Cráteres)
+                        </option>
+
+                        <option value="jupiter"
+                        {% if datos_formulario.objetivo == "jupiter" %}selected{% endif %}>
+                        Júpiter y lunas galileanas
+                    </option>
+
+                    <option value="saturno"
+                    {% if datos_formulario.objetivo == "saturno" %}selected{% endif %}>
+                    Saturno y sus anillos
+                </option>
+
+                <option value="marte"
+                {% if datos_formulario.objetivo == "marte" %}selected{% endif %}>
+                Marte
             </option>
-            <option value="luna">La Luna (Fases y Cráteres)</option>
-            <option value="jupiter">Júpiter y lunas galileanas</option>
-            <option value="saturno">Saturno y sus anillos</option>
-            <option value="marte">Marte</option>
-            <option value="espacio_profundo">
-                Espacio Profundo (Nebulosas y Galaxias)
-            </option>
-            <option value="todo">Un poco de todo (Jornada larga)</option>
-            </select>
-        </div>
 
-        <div class="col-md-12 mb-4">
-            <label class="form-label theme-label fw-bold">2. Fecha de la Observación</label>
-            <input
-            type="date"
-            name="fecha"
-            class="form-control theme-input"
-            required
-            id="fecha_input"
-            class="form-control theme-input"
-            min="{{ fecha_minima }}"
-            aria-describedby="fecha_ayuda"
-            required
-            />
+            <option value="espacio_profundo"
+            {% if datos_formulario.objetivo == "espacio_profundo" %}selected{% endif %}>
+            Espacio Profundo (Nebulosas y Galaxias)
+        </option>
 
-            <small
-                id="fecha_ayuda"
-                class="theme-label d-block mt-1"
-                role="alert"
-            >
-                Selecciona hoy o una fecha futura. Los horarios se validarán al enviar.
-            </small>
+        <option value="todo"
+        {% if datos_formulario.objetivo == "todo" %}selected{% endif %}>
+        Un poco de todo (Jornada larga)
+    </option>
+    {% if not datos_formulario.objetivo %}selected{% endif %}
+</select>
+</div>
 
-            <small
-                id="fecha_error"
-                class="text-danger d-none mt-1"
-                role="alert">
-            </small>
+<div class="col-md-12 mb-4">
+    <label class="form-label theme-label fw-bold">2. Fecha de la Observación</label>
+    <input
+    type="date"
+    name="fecha"
+    id="fecha_input"
+    class="form-control theme-input"
+    min="{{ fecha_minima }}"
+    value="{{ datos_formulario.fecha|default:'' }}"
+    aria-describedby="fecha_ayuda fecha_error"
+    required
+    />
 
-            <div
-            class="mt-2 p-2 rounded"
-            style="
+    <small
+    id="fecha_ayuda"
+    class="theme-label d-block mt-1"
+    role="alert"
+    >
+    Selecciona hoy o una fecha futura. Los horarios se validarán al enviar.
+</small>
+
+<small
+id="fecha_error"
+class="text-danger d-none mt-1"
+role="alert">
+</small>
+
+<div
+class="mt-2 p-2 rounded"
+style="
                 background-color: rgba(77, 168, 218, 0.1);
                 border: 1px dashed #4da8da;
             "
-            >
-            <small id="clima_status" class="text-info d-block text-center">
-                ☁️ Esperando selección de fecha para consultar el radar meteorológico...
-            </small>
-            </div>
-        </div>
+>
+<small id="clima_status" class="text-info d-block text-center">
+    ☁️ Esperando selección de fecha para consultar el radar meteorológico...
+</small>
+</div>
+</div>
 
-        <div class="col-md-6 mb-4">
-            <label class="form-label theme-label fw-bold">3. Hora de Inicio</label>
-            <input
-                type="time"
-                name="hora_inicio"
-                id="hora_inicio_input"
-                class="form-control theme-input"
-                value="{{ datos_formulario.hora_inicio|default:'' }}"
-                required
-            />
+<div class="col-md-6 mb-4">
+    <label class="form-label theme-label fw-bold">3. Hora de Inicio</label>
+    <input
+    type="time"
+    name="hora_inicio"
+    id="hora_inicio_input"
+    class="form-control theme-input"
+    value="{{ datos_formulario.hora_inicio|default:'' }}"
+    required
+    />
 
-            <small
-                id="hora_inicio_error"
-                class="text-danger d-block mt-1"
-                role="alert"
-            >
-            </small>
-        </div>
-        <div class="col-md-6 mb-4">
-            <label class="form-label theme-label fw-bold">4. Hora de Finalización</label>
-            <input type="time" name="hora_fin" class="form-control theme-input" required />
+    <small
+    id="hora_inicio_error"
+    class="text-danger d-none mt-1"
+    role="alert"
+    >
+</small>
+</div>
+<div class="col-md-6 mb-4">
+    <label class="form-label theme-label fw-bold">4. Hora de Finalización</label>
+    <input
+    type="time"
+    name="hora_fin"
+    class="form-control theme-input"
+    value="{{ datos_formulario.hora_fin|default:'' }}"
+    required
+    />
 
-            <small
-                id="hora_fin_error"
-                class="text-danger d-none mt-1"
-                role="alert"
-            >
-            </small>
-        </div>
+    <small
+    id="hora_fin_error"
+    class="text-danger d-none mt-1"
+    role="alert"
+    >
+</small>
+</div>
 
-        <div class="col-md-12 mb-4">
-            <label class="theme-label theme-label fw-bold">5. Comentarios de la Investigación (Opcional)</label>
-            <textarea
-            name="comentarios"
-            class="form-control theme-input"
-            rows="3"
-            placeholder="Ej. Necesito usar el filtro lunar, es para un proyecto de la clase de Física..."
-            ></textarea>
-        </div>
-        </div>
+<div class="col-md-12 mb-4">
 
-        <div class="d-grid gap-2 mt-2">
-        <button type="submit" id="btn_enviar_reserva" class="btn btn-neon btn-lg" disabled>
-            🔒 Validando clima para agendar...
-        </button>
-        </div>
-    </form>
-    </div>
+    <label
+        for="cantidad_asistentes_input"
+        class="form-label theme-label fw-bold">
+        5. ¿Cuántas personas asistirán en total?
+    </label>
+
+    <input
+        type="number"
+        name="cantidad_asistentes"
+        id="cantidad_asistentes_input"
+        class="form-control theme-input"
+        min="1"
+        step="1"
+        value="{{ datos_formulario.cantidad_asistentes|default:'1' }}"
+        required
+    />
+
+    <small class="theme-label d-block mt-1">
+        Inclúyete en el total.
+        Por ejemplo, si asistirás con cuatro amigos,
+        selecciona 5 personas.
+        La disponibilidad estará sujeta a revisión.
+    </small>
+
+</div>
+
+<div class="col-md-12 mb-4">
+    <label class="theme-label theme-label fw-bold">6. Comentarios adicionales (Opcional)</label>
+    <textarea
+    name="comentarios"
+    class="form-control theme-input"
+    rows="3"
+    placeholder="Ej. Necesito usar el filtro lunar, es para un proyecto de la clase de Física..."
+    >{{ datos_formulario.comentarios|default:'' }}</textarea>
+</div>
+</div>
+
+<div class="d-grid gap-2 mt-2">
+    <button type="submit" id="btn_enviar_reserva" class="btn btn-neon btn-lg" disabled>
+        🔒 Validando clima para agendar...
+    </button>
+</div>
+</form>
+</div>
 </div>
 </div>
 
 <script>
-let temporizadorClima;
-const btnReserva = document.getElementById("btn_enviar_reserva");
+    let temporizadorClima;
+    let versionConsultaClima = 0;
 
-function validarFechaYHorario() {
-    const fecha = document.getElementById("fecha_input");
-    const inicio = document.getElementById("hora_inicio_input");
-    const fin = document.querySelector('[name="hora_fin"]');
+    const btnReserva = document.getElementById("btn_enviar_reserva");
+    const formulario = btnReserva.closest("form");
 
-    const errorFecha = document.getElementById("fecha_error");
-    const errorInicio = document.getElementById("hora_inicio_error");
-    const errorFin = document.getElementById("hora_fin_error");
+    const campoFecha = document.getElementById("fecha_input");
+    const campoInicio = document.getElementById("hora_inicio_input");
+    const campoFin = document.querySelector('[name="hora_fin"]');
+    const campoObjetivo = document.querySelector('[name="objetivo"]');
+    const campoCantidad = document.getElementById(
+    "cantidad_asistentes_input"
+    );
+    const statusDiv = document.getElementById("clima_status");
 
-    errorFecha.classList.add("d-none");
-    errorInicio.classList.add("d-none");
-    errorFin.classList.add("d-none");
+    function validarFechaYHorario() {
+        const errorFecha = document.getElementById("fecha_error");
+        const errorInicio = document.getElementById("hora_inicio_error");
+        const errorFin = document.getElementById("hora_fin_error");
 
-    let valido = true;
+        errorFecha.classList.add("d-none");
+        errorInicio.classList.add("d-none");
+        errorFin.classList.add("d-none");
 
-    // Fecha anterior al mínimo permitido
-    if (fecha.value && fecha.value < fecha.min) {
-        errorFecha.textContent =
+        let valido = true;
+
+        // No permitir fechas pasadas
+        if (
+        campoFecha.value &&
+        campoFecha.min &&
+        campoFecha.value < campoFecha.min
+        ) {
+            errorFecha.textContent =
             "No puedes seleccionar una fecha pasada.";
 
-        errorFecha.classList.remove("d-none");
-        valido = false;
-    }
+            errorFecha.classList.remove("d-none");
+            valido = false;
+        }
 
-    // Hora que ya transcurrió durante el día actual
-    if (fecha.value === fecha.min && inicio.value) {
-        const ahora = new Date();
+        // No permitir horas pasadas para el día actual
+        if (
+        campoFecha.value === campoFecha.min &&
+        campoInicio.value
+        ) {
+            const ahora = new Date();
 
-        const horaActual =
+            const horaActual =
             String(ahora.getHours()).padStart(2, "0") +
             ":" +
             String(ahora.getMinutes()).padStart(2, "0");
 
-        if (inicio.value <= horaActual) {
-            errorInicio.textContent =
+            if (campoInicio.value <= horaActual) {
+                errorInicio.textContent =
                 "La hora de inicio debe ser futura.";
 
-            errorInicio.classList.remove("d-none");
-            valido = false;
+                errorInicio.classList.remove("d-none");
+                valido = false;
+            }
         }
-    }
 
-    // Hora final anterior o igual a la inicial
-    if (inicio.value && fin.value && fin.value <= inicio.value) {
-        errorFin.textContent =
+        // La hora final debe ser posterior a la inicial
+        if (
+        campoInicio.value &&
+        campoFin.value &&
+        campoFin.value <= campoInicio.value
+        ) {
+            errorFin.textContent =
             "La hora final debe ser posterior a la inicial.";
 
-        errorFin.classList.remove("d-none");
-        valido = false;
+            errorFin.classList.remove("d-none");
+            valido = false;
+        }
+
+        return valido;
     }
 
-    return valido;
-}
+    // El botón depende del formulario, NO del clima
+    function actualizarBotonReserva(validacionCorrecta) {
+        const puedeEnviar =
+        validacionCorrecta && formulario.checkValidity();
 
-function consultarClima() {
-    let fecha = document.getElementById("fecha_input").value;
-    let hora = document.getElementById("hora_inicio_input").value;
-    let statusDiv = document.getElementById("clima_status");
+        btnReserva.disabled = !puedeEnviar;
 
-    clearTimeout(temporizadorClima);
+        btnReserva.textContent = puedeEnviar
+        ? "📩 Enviar solicitud de observación"
+        : "Completa o corrige el formulario";
+    }
 
-    if (!validarFechaYHorario()) {
-        btnReserva.disabled = true;
+    function consultarClima() {
+        // Identifica la consulta más reciente
+        const versionActual = ++versionConsultaClima;
 
-        btnReserva.textContent =
-            "Corrige la fecha o el horario";
+        clearTimeout(temporizadorClima);
 
-        statusDiv.textContent =
-            "Corrige los datos antes de consultar el clima.";
+        const validos = validarFechaYHorario();
 
-        statusDiv.className =
+        // Siempre actualizar el botón independientemente de Windy
+        actualizarBotonReserva(validos);
+
+        // Primero comprobar que existan fecha y horarios
+        if (
+        !campoFecha.value ||
+        !campoInicio.value ||
+        !campoFin.value
+        ) {
+            statusDiv.textContent =
+            "Selecciona fecha y horarios para consultar el pronóstico.";
+
+            statusDiv.className =
+            "text-info d-block text-center";
+
+            return;
+        }
+
+        // No consultar Windy si los datos son incorrectos
+        if (!validos || !campoFecha.checkValidity()) {
+            statusDiv.textContent =
+            "Corrige la fecha o el horario antes de consultar el clima.";
+
+            statusDiv.className =
             "text-danger d-block text-center fw-bold";
 
-        return;
+            return;
+        }
+
+        statusDiv.textContent =
+        "⏳ Preparando consulta meteorológica...";
+
+        statusDiv.className =
+        "text-info d-block text-center";
+
+        // Esperar a que el usuario termine de escribir
+        temporizadorClima = setTimeout(() => {
+            if (versionActual !== versionConsultaClima) return;
+
+            statusDiv.textContent =
+            "🛰️ Consultando información meteorológica...";
+
+            statusDiv.className =
+            "text-warning d-block text-center";
+
+            const parametros = new URLSearchParams({
+                fecha: campoFecha.value,
+                hora: campoInicio.value,
+                hora_fin: campoFin.value
+            });
+
+            fetch(`/api/consultar-clima/?${parametros.toString()}`)
+            .then(response => response.json())
+            .then(data => {
+
+                // Ignorar respuestas de consultas anteriores
+                if (versionActual !== versionConsultaClima) return;
+
+                // Mostrar el mensaje enviado por Django
+                statusDiv.textContent =
+                data.mensaje || "Pronóstico no disponible.";
+
+                if (data.estado === "favorable") {
+
+                    statusDiv.className =
+                    "text-info d-block text-center fw-bold";
+
+                } else if (data.estado === "desfavorable") {
+
+                    statusDiv.className =
+                    "text-warning d-block text-center fw-bold";
+
+                } else if (data.estado === "error_servicio") {
+
+                    statusDiv.className =
+                    "text-warning d-block text-center fw-bold";
+
+                } else {
+
+                    statusDiv.className =
+                    "text-info d-block text-center";
+                }
+
+                // Windy no habilita ni bloquea el botón
+            })
+            .catch(() => {
+
+                if (versionActual !== versionConsultaClima) return;
+
+                statusDiv.textContent =
+                "⚠️ No fue posible consultar el pronóstico. " +
+                "Puedes enviar tu solicitud para revisión.";
+
+                statusDiv.className =
+                "text-warning d-block text-center";
+            });
+
+        }, 800);
     }
 
-    if (!fecha) return;
+    // Revalidar cuando cambien los campos
+    campoFecha.addEventListener("change", consultarClima);
+    campoFecha.addEventListener("input", consultarClima);
 
-    clearTimeout(temporizadorClima);
+    campoInicio.addEventListener("change", consultarClima);
+    campoInicio.addEventListener("input", consultarClima);
 
-    // Medida de seguridad: Bloqueamos el botón inmediatamente al detectar un cambio
-    btnReserva.disabled = true;
-    btnReserva.innerHTML = "🔒 Validando clima para agendar...";
+    campoFin.addEventListener("change", consultarClima);
+    campoFin.addEventListener("input", consultarClima);
 
-    statusDiv.innerHTML = "⏳ Esperando confirmación de hora...";
-    statusDiv.className = "text-secondary d-block text-center fw-bold";
+    campoObjetivo.addEventListener("change", () => {
+        actualizarBotonReserva(validarFechaYHorario());
+    });
 
-    temporizadorClima = setTimeout(() => {
-    statusDiv.innerHTML = "🛰️ Analizando nubes y precipitación...";
-    statusDiv.className = "text-warning d-block text-center fw-bold";
+    campoCantidad.addEventListener("input", () => {
+        actualizarBotonReserva(validarFechaYHorario());
+    });
 
-    let url = `/api/consultar-clima/?fecha=${fecha}`;
-    if (hora) url += `&hora=${hora}`;
+    campoCantidad.addEventListener("change", () => {
+        actualizarBotonReserva(validarFechaYHorario());
+    });
 
-    fetch(url)
-        .then((response) => response.json())
-        .then((data) => {
-        statusDiv.innerHTML = data.mensaje;
+    // Protección adicional antes de enviar el formulario
+    formulario.addEventListener("submit", function(evento) {
+        const validos = validarFechaYHorario();
 
-        if (data.estado === "aprobado" && validarFechaYHorario()) {
-            statusDiv.className = "text-success d-block text-center fw-bold";
-            btnReserva.disabled = false;
-            btnReserva.innerHTML = "✅ Solicitar Reserva al Observatorio";
-        } else if (data.estado === "rechazado") {
-            statusDiv.className = "text-danger d-block text-center fw-bold";
-            btnReserva.disabled = true;
-            btnReserva.innerHTML = "❌ Clima no favorable";
-        } else {
-            statusDiv.className = "text-info d-block text-center fw-bold";
-            btnReserva.disabled = true;
+        if (!validos || !formulario.checkValidity()) {
+            evento.preventDefault();
+            actualizarBotonReserva(validos);
         }
-        })
-        .catch((error) => {
-        statusDiv.innerHTML = "❌ Fallo en la comunicación.";
-        statusDiv.className = "text-danger d-block text-center";
-        btnReserva.disabled = true;
-        });
-    }, 800);
-}
+    });
 
-document.getElementById("fecha_input").addEventListener("change", consultarClima);
-document.getElementById("hora_inicio_input").addEventListener("change", consultarClima);
-document.getElementById("hora_inicio_input").addEventListener("input", consultarClima);
-
-document.getElementById("fecha_input").addEventListener("input", consultarClima);
-
-document.querySelector('[name="hora_fin"]').addEventListener("input", consultarClima);
-
-document.querySelector('[name="hora_fin"]').addEventListener("change", consultarClima);
-
-consultarClima();
+    // Comprobar los campos al cargar la página
+    consultarClima();
 
 </script>
 

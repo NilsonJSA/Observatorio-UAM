@@ -8,6 +8,11 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 
+from django.conf import settings
+
+from .weather_client import consultar_condiciones_windy
+from .weather_policy import debe_bloquear_por_clima
+
 def validar_fecha_y_horario(datos):
     fecha = datos["fecha"]
     inicio = datos["hora_inicio"]
@@ -60,6 +65,7 @@ class ReservaObservacionSerializer(serializers.ModelSerializer):
             "fecha",
             "hora_inicio",
             "hora_fin",
+            "cantidad_asistentes",
             "comentarios",
             "estado",
             "estado_display",
@@ -71,6 +77,13 @@ class ReservaObservacionSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 class ReservaCreacionSerializer(serializers.ModelSerializer):
+
+    cantidad_asistentes = serializers.IntegerField(
+        min_value=1,
+        max_value=32767,
+        required=False,
+        default=1,
+    )
     class Meta:
         model = ReservaObservacion
         fields = [
@@ -79,12 +92,62 @@ class ReservaCreacionSerializer(serializers.ModelSerializer):
             "fecha",
             "hora_inicio",
             "hora_fin",
+            "cantidad_asistentes",
             "comentarios",
         ]
         read_only_fields = ["id"]
 
+
     def validate(self, attrs):
-        return validar_fecha_y_horario(attrs)
+        # 1. Conservar las validaciones existentes.
+        attrs = validar_fecha_y_horario(attrs)
+
+        # 2. En pruebas o modo de aviso no se bloquean reservas.
+        if settings.WEATHER_MODE != "REAL_BLOQUEO":
+            return attrs
+
+        # 3. Impedir el uso operativo sin verificaciones.
+        fuente_verificada = getattr(
+            settings, "WINDY_REAL_VERIFIED", False
+        )
+
+        criterios_aprobados = getattr(
+            settings, "WEATHER_CRITERIA_APPROVED", False
+        )
+
+        if not fuente_verificada or not criterios_aprobados:
+            raise serializers.ValidationError({
+                "non_field_errors": [
+                    "El bloqueo meteorológico no está habilitado "
+                    "para operar. La fuente y los criterios "
+                    "deben ser verificados por el Observatorio."
+                ]
+            })
+
+        # 4. Consultar las condiciones de todo el intervalo.
+        resultado = consultar_condiciones_windy(
+            attrs["fecha"],
+            attrs["hora_inicio"],
+            attrs["hora_fin"],
+        )
+
+        # 5. Aplicar la política meteorológica centralizada.
+        if debe_bloquear_por_clima(
+            resultado.get("estado"),
+            fuente_real_verificada=fuente_verificada,
+        ):
+            raise serializers.ValidationError({
+                "non_field_errors": [
+                    "Las condiciones meteorológicas previstas "
+                    "son desfavorables para este horario. "
+                    "Selecciona otra fecha u horario."
+                ]
+            })
+
+        # Sin datos o error de pronóstico:
+        # no declarar favorable el clima.
+        # La solicitud continúa a revisión administrativa.
+        return attrs
 
 class ConsultaDisponibilidadSerializer(serializers.Serializer):
     fecha = serializers. DateField()

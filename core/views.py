@@ -13,9 +13,16 @@ from .models import ReservaObservacion
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from .serializers import ReservaCreacionSerializer
+from .serializers import (
+    ReservaCreacionSerializer,
+    RegistroUsuarioSerializer,
+)
 
 from django.utils import timezone as django_timezone
+
+from math import isfinite
+
+from .weather_client import consultar_condiciones_windy
 
 # Tu vista home queda igual
 def home(request):
@@ -27,11 +34,11 @@ def login_view(request):
         # 1. Capturamos lo que el usuario escribió
         email = request.POST.get('email')
         contrasena = request.POST.get('password')
-        
-        # 2. Django usa 'username' por defecto. Como pedimos correo, 
+
+        # 2. Django usa 'username' por defecto. Como pedimos correo,
         # le decimos que valide usando el email en el campo username.
         user = authenticate(request, username=email, password=contrasena)
-        
+
         # 3. Verificamos si existe y la contraseña es correcta
         if user is not None:
             login(request, user) # ¡Sesión iniciada!
@@ -39,31 +46,47 @@ def login_view(request):
         else:
             # Si falla, mandamos un mensaje de error
             messages.error(request, "Correo o contraseña incorrectos.")
-            
+
     return render(request, 'core/login.html')
 
 # Vista de Registro
 def register_view(request):
-    if request.method == 'POST':
-        # 1. Capturamos los datos
-        nombre = request.POST.get('nombre')
-        email = request.POST.get('email')
-        contrasena = request.POST.get('password')
-        rol = request.POST.get('rol') 
-        
-        # 2. Revisamos si el correo ya existe en la base de datos
-        if User.objects.filter(username=email).exists():
-            messages.error(request, "Este correo ya está registrado. Intenta iniciar sesión.")
-        else:
-            # 3. Creamos al usuario. (Usamos el email como su username interno)
-            user = User.objects.create_user(username=email, email=email, password=contrasena, first_name=nombre)
-            user.save()
-            
-            # ¡Éxito! Lo mandamos a que inicie sesión
-            messages.success(request, "¡Cuenta creada con éxito! Ahora puedes iniciar sesión.")
-            return redirect('login')
-            
-    return render(request, 'core/register.html')
+    if request.method == "POST":
+        serializer = RegistroUsuarioSerializer(
+            data={
+                "nombre": request.POST.get("nombre", ""),
+                "email": request.POST.get("email", ""),
+                "password": request.POST.get("password", ""),
+            }
+        )
+        if serializer.is_valid():
+            serializer.save()
+            messages.success(
+                request,
+                "¡Cuenta creada correctamente! "
+                "Ahora puedes iniciar sesión."
+            )
+            return redirect("login")
+        for campo, errores in serializer.errors.items():
+            for error in errores:
+                messages.error(
+                    request,
+                    f"{campo}: {error}"
+                )
+    return render(
+        request,
+        "core/register.html",
+        {
+            "nombre_previo": (
+                request.POST.get("nombre", "")
+                if request.method == "POST" else ""
+            ),
+            "email_previo": (
+                request.POST.get("email", "")
+                if request.method == "POST" else ""
+            ),
+        },
+    )
 
 # Tu vista agendar 2.0
 @login_required(login_url='login')
@@ -118,113 +141,131 @@ def logout_view(request):
 def perfil_view(request):
     # Traemos SOLO las reservas del usuario que está logueado
     mis_reservas = ReservaObservacion.objects.filter(usuario=request.user).order_by('-fecha_solicitud')
-    
+
     context = {
         'reservas': mis_reservas
     }
     return render(request, 'core/perfil.html', context)
 
 
-#Api del clima 
+#Api del clima
 # #UAM google maps 12.108975711245238, -86.25688407914218
 #UAM Windy 12.109, -86.257
 
 
 def consultar_clima_api(request):
-    fecha = request.GET.get('fecha')
-    hora = request.GET.get('hora', '18:00') # Si no han puesto hora, asumimos las 6:00 PM por defecto
-    
-    if not fecha:
-        return JsonResponse({'mensaje': 'Esperando fecha...'})
+    fecha = request.GET.get("fecha")
+    hora = request.GET.get("hora", "18:00")
+    hora_fin = request.GET.get("hora_fin") or None
 
-    url = "https://api.windy.com/api/point-forecast/v2"
-    
-    datos_consulta = {
-        "lat": 12.109,
-        "lon": -86.257,
-        "model": "gfs",
-        "parameters": ["lclouds", "mclouds", "hclouds", "precip"],
-        "levels": ["surface"],
-        "key": settings.WINDY_API_KEY 
+    if not fecha:
+        return JsonResponse({
+            "estado": "esperando_fecha",
+            "mensaje": "Esperando fecha..."
+        })
+
+    # Consulta centralizada: Windy + evaluación meteorológica.
+    resultado = consultar_condiciones_windy(
+        fecha,
+        hora,
+        hora_fin,
+    )
+
+    estado = resultado.get("estado", "error_servicio")
+
+    # Condiciones que se pudieron evaluar.
+    if estado in ("favorable", "desfavorable"):
+
+        nubosidad = resultado["nubosidad"]
+        lluvia = resultado["precipitacion_3h"]
+
+        if settings.WEATHER_MODE == "PRUEBAS":
+            origen = "Datos meteorológicos de prueba"
+        else:
+            origen = "Evaluación meteorológica"
+
+        if estado == "desfavorable":
+            mensaje = (
+                f"⚠️ {origen}: "
+                f"{nubosidad}% de nubosidad y "
+                f"{lluvia} mm de precipitación "
+                "acumulada en tres horas. "
+                "Indicadores desfavorables según "
+                "los umbrales provisionales."
+            )
+
+            if settings.WEATHER_MODE == "PRUEBAS":
+                mensaje += (
+                    " Puedes enviar tu solicitud "
+                    "para revisión administrativa."
+                )
+            else:
+                mensaje += (
+                    " La solicitud está sujeta a "
+                    "la política meteorológica del servidor."
+                )
+
+        else:
+            mensaje = (
+                f"ℹ️ {origen}: "
+                f"{nubosidad}% de nubosidad y "
+                f"{lluvia} mm de precipitación "
+                "acumulada en tres horas. "
+                "Indicadores favorables según "
+                "los umbrales provisionales. "
+                "Esto no constituye una aprobación."
+            )
+
+        return JsonResponse({
+            "estado": estado,
+            "mensaje": mensaje,
+            "nubosidad": nubosidad,
+            "precipitacion_3h": lluvia,
+            "muestras_evaluadas": resultado[
+                "muestras_evaluadas"
+            ],
+        })
+
+    # Respuestas cuando no se pudo evaluar el clima.
+    mensajes = {
+        "formato_invalido": (
+            "⚠️ Formato de fecha u hora inválido."
+        ),
+        "sin_datos": (
+            "⚠️ Información meteorológica incompleta. "
+            "No es posible evaluar las condiciones."
+        ),
+        "fuera_de_rango": (
+            "ℹ️ No hay pronóstico disponible para "
+            "la fecha y el horario seleccionados."
+        ),
+        "error_configuracion": (
+            "El servicio meteorológico no está configurado."
+        ),
+        "error_servicio": (
+            "No fue posible consultar el servicio meteorológico."
+        ),
     }
 
-    try:
-        respuesta = requests.post(url, json=datos_consulta)
-        
-        if respuesta.status_code == 200:
-            datos = respuesta.json() # Abrimos el paquete de datos de Windy
-            
-            # 1. Convertimos la fecha y hora del usuario a formato de milisegundos (Como lo usa Windy)
-            try:
-                fecha_hora_str = f"{fecha} {hora}"
-                # Configuramos la zona horaria de Nicaragua (UTC -6)
-                fecha_usuario = datetime.strptime(fecha_hora_str, '%Y-%m-%d %H:%M')
-                fecha_usuario = fecha_usuario.replace(tzinfo=timezone(timedelta(hours=-6)))
-                timestamp_usuario = int(fecha_usuario.timestamp() * 1000) 
-            except ValueError:
-                return JsonResponse({'mensaje': '⚠️ Formato de fecha/hora inválido.'})
+    mensaje = resultado.get(
+        "mensaje",
+        mensajes.get(
+            estado,
+            "No fue posible evaluar las condiciones."
+        )
+    )
 
-            # 2. Buscamos en qué momento del radar encaja la hora del usuario
-            tiempos = datos.get('ts', [])
-            if not tiempos:
-                return JsonResponse({'mensaje': '⚠️ Radar sin datos de tiempo.'})
+    if estado == "formato_invalido":
+        codigo_http = 400
+    elif estado in ("error_servicio", "error_configuracion"):
+        codigo_http = resultado.get("codigo_http", 503)
+    else:
+        codigo_http = 200
 
-            # Encontramos el índice más cercano a la hora solicitada
-            diferencias = [abs(t - timestamp_usuario) for t in tiempos]
-            indice_exacto = diferencias.index(min(diferencias))
-
-            # 3. EXTRAEMOS LOS DATOS DE FORMA SÚPER SEGURA
-            # Creamos una lista llena de ceros del mismo tamaño que el radar de Windy
-            # por si Windy decide no enviar algún dato (ej. si no hay lluvia).
-            ceros = [0] * len(tiempos)
-
-            # Buscamos las llaves con su nombre completo o resumido, si no existen, usamos los ceros.
-            lista_bajas = datos.get('lclouds-surface') or datos.get('lclouds') or ceros
-            lista_medias = datos.get('mclouds-surface') or datos.get('mclouds') or ceros
-            lista_altas = datos.get('hclouds-surface') or datos.get('hclouds') or ceros
-            lista_lluvia = datos.get('precip-surface') or datos.get('precip') or ceros
-
-            # Ahora sí, extraemos el índice exacto sin miedo a salirnos del rango
-            nubes_bajas = lista_bajas[indice_exacto]
-            nubes_medias = lista_medias[indice_exacto]
-            nubes_altas = lista_altas[indice_exacto]
-            lluvia = lista_lluvia[indice_exacto]
-
-            # Tomamos la capa de nubes más densa y redondeamos a 1 decimal para que se vea elegante
-            nubosidad_maxima = round(max(nubes_bajas, nubes_medias, nubes_altas), 1)
-            lluvia = round(lluvia, 2)
-
-            # 🕵️‍♂️ PRINTS DETECTIVES: Para ver en la terminal el salto de horas
-            tiempo_encontrado_ms = tiempos[indice_exacto]
-            fecha_radar = datetime.fromtimestamp(tiempo_encontrado_ms / 1000.0, tz=timezone(timedelta(hours=-6)))
-            
-            print("\n🔍 --- INVESTIGACIÓN DE CLIMA ---")
-            print(f"Hora que pediste en la web: {fecha_usuario.strftime('%Y-%m-%d %H:%M')}")
-            print(f"Bloque del radar seleccionado: {fecha_radar.strftime('%Y-%m-%d %H:%M')}")
-            print(f"Nubosidad: {nubosidad_maxima}% | Lluvia: {lluvia}mm")
-            print("----------------------------------\n")
-
-            # 4. APLICAMOS LAS REGLAS DEL OBSERVATORIO (Nubosidad > 20% o Lluvia > 2mm)
-            if nubosidad_maxima > 20 or lluvia > 2:
-                return JsonResponse({
-                    'estado': 'rechazado',
-                    'mensaje': f'❌ Día no factible: {nubosidad_maxima}% de nubosidad y {lluvia}mm de lluvia pronosticada. Por favor, elige otra fecha.'
-                })
-            else:
-                return JsonResponse({
-                    'estado': 'aprobado',
-                    'mensaje': f'✅ ¡Cielo despejado! Condiciones óptimas: Nubosidad al {nubosidad_maxima}% y sin riesgo de lluvia.'
-                })
-                
-        else:
-            return JsonResponse({'mensaje': '⚠️ Error en el radar meteorológico.'})
-            
-    except Exception as e:
-        # ¡Agregamos estos prints para descubrir al culpable!
-        print("❌================ ERROR INTERNO ================❌")
-        print(f"El error exacto es: {e}")
-        import traceback
-        traceback.print_exc()
-        print("❌===============================================❌")
-        
-        return JsonResponse({'mensaje': '❌ Error de conexión con el satélite.'})
+    return JsonResponse(
+        {
+            "estado": estado,
+            "mensaje": mensaje,
+        },
+        status=codigo_http,
+    )

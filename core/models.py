@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.validators import MinValueValidator
 
 class ReservaObservacion(models.Model):
     # 1. Opciones del formulario (¿Qué quieren ver?)
@@ -32,6 +33,16 @@ class ReservaObservacion(models.Model):
     hora_inicio = models.TimeField()
     hora_fin = models.TimeField()
     comentarios = models.TextField(blank=True, null=True)
+    # Cantidad total de asistentes, incluido el solicitante
+    cantidad_asistentes = models.PositiveSmallIntegerField(
+        default=1,
+        validators=[MinValueValidator(1)],
+        verbose_name="Cantidad de asistentes",
+        help_text=(
+            "Número total de personas que asistirán "
+            "a la observación, incluido el solicitante."
+        )
+    )
 
     # 5. Control de Aforo y Aprobación
     # Todo ticket nuevo nace en el Paso 1 automáticamente

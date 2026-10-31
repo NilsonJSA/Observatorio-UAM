@@ -52,6 +52,7 @@
                     <th>Fecha</th>
                     <th>Objetivo</th>
                     <th>Horario</th>
+                    <th>Asistentes</th>
                     <th>Estado</th>
                     <th>Detalles</th>
                 </tr>
@@ -68,30 +69,43 @@
                         {{ r.hora_inicio|time:"H:i" }} - {{ r.hora_fin|time:"H:i" }}
                     </td>
 
+                    <td class="text-nowrap">
+                        {{ r.cantidad_asistentes }}
+                        {% if r.cantidad_asistentes == 1 %}
+                            persona
+                        {% else %}
+                            personas
+                        {% endif %}
+                    </td>
+
                     <td>
                         <span
-                        class="badge {% if r.estado == 'aprobada' %} bg-success {% elif r.estado == 'reprogramar' %} bg-warning text-dark {% elif r.estado == 'rechazada' %} bg-danger {% else %} bg-info text-dark {% endif %}"
+                            class="badge badge-estado {% if r.estado == 'aprobada' %}badge-aprobado
+                            {% elif r.estado == 'reprogramar' %}badge-reprogramar
+                            bg-warning text-dark {% elif r.estado == 'rechazada' %}badge-rechazada
+                            {% else %} badge-pendiente
+                            {% endif %}"
                         >
                         {{ r.get_estado_display }}
-                    </span>
-                </td>
+                        </span>
+                    </td>
 
-                <td>
-                    <button
-                    type="button"
-                    class="btn btn-neon btn-sm text-nowrap"
-                    data-bs-toggle="modal"
-                    data-bs-target="#detalleReserva{{ r.id }}"
-                    >
-                    Ver detalles
-                </button>
-            </td>
-        </tr>
+                    <td>
+                        <button
+                        type="button"
+                        class="btn btn-neon btn-sm text-nowrap"
+                        data-bs-toggle="modal"
+                        data-bs-target="#detalleReserva{{ r.id }}"
+                        >
+                        Ver detalles
+                        </button>
+                    </td>
+                </tr>
 
         {% empty %}
 
         <tr>
-            <td colspan="5" class="text-center py-4">
+            <td colspan="6" class="text-center py-4">
                 Aún no tienes reservas solicitadas.
             </td>
         </tr>
@@ -151,6 +165,18 @@ aria-hidden="true"
             <p class="mb-0">{{ r.hora_inicio|time:"H:i" }}</p>
         </div>
 
+        <div class="mb-3">
+            <strong>Cantidad de asistentes</strong>
+            <p class="mb-0">
+                {{ r.cantidad_asistentes }}
+                {% if r.cantidad_asistentes == 1 %}
+                    persona (incluido el solicitante)
+                {% else %}
+                    personas (incluido el solicitante)
+                {% endif %}
+            </p>
+        </div>
+
         <div class="col-6">
             <strong>Hora de finalización</strong>
             <p class="mb-0">{{ r.hora_fin|time:"H:i" }}</p>
@@ -161,7 +187,11 @@ aria-hidden="true"
         <strong>Estado de la solicitud</strong>
         <p class="mt-1">
             <span
-            class="badge {% if r.estado == 'aprobada' %} bg-success {% elif r.estado == 'reprogramar' %} bg-warning text-dark {% elif r.estado == 'rechazada' %} bg-danger {% else %} bg-info text-dark {% endif %}"
+                class="badge badge-estado {% if r.estado == 'aprobada' %}badge-aprobado
+                {% elif r.estado == 'reprogramar' %}badge-reprogramar
+                {% elif r.estado == 'rechazada' %}badge-rechazada
+                {% else %}badge-pendiente
+                {% endif %}"
             >
             {{ r.get_estado_display }}
         </span>

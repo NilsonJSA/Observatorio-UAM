@@ -9,11 +9,11 @@
                 {% csrf_token %}
                 <div class="mb-3">
                     <label class="form-label">Nombre Completo</label>
-                    <input type="text" name="nombre" class="form-control" placeholder="Ej. Nilson Saballos" required>
+                    <input type="text" name="nombre" class="form-control" placeholder="Ej. Nilson Saballos" value="{{ nombre_previo }}" required>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Correo Electrónico</label>
-                    <input type="email" name="email" class="form-control" placeholder="correo@uam.edu.ni" required>
+                    <input type="email" name="email" class="form-control" placeholder="correo@uam.edu.ni" value="{{ email_previo }}" required>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Rol</label>
